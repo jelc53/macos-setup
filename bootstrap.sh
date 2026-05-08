@@ -35,8 +35,8 @@ log "Symlinking dotfiles"
 log "Installing language toolchains"
 "$REPO_DIR/scripts/install-languages.sh"
 
-# 6. macOS defaults (optional, edit before running)
-# log "Applying macOS defaults"
-# "$REPO_DIR/scripts/macos-defaults.sh"
+# 6. macOS defaults (wallpaper + any uncommented prefs)
+log "Applying macOS defaults"
+"$REPO_DIR/scripts/macos-defaults.sh"
 
 log "Bootstrap complete. See README §Post-install for manual steps."

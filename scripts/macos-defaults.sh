@@ -1,7 +1,22 @@
 #!/usr/bin/env bash
-# macOS system defaults. Disabled by default in bootstrap.sh —
-# uncomment lines you want and enable the call from bootstrap.sh.
+# macOS system defaults.
 set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# ============================================================
+# Desktop wallpaper
+# ============================================================
+# Options in assets/wallpapers/:
+#   sf-hike-to-stinson-beach.JPG  (default)
+#   sf-bay-from-mount-tam.JPG
+#   ninsei-jarre-de-the.JPG
+WALLPAPER="$REPO_DIR/assets/wallpapers/sf-hike-to-stinson-beach.JPG"
+osascript -e "tell application \"System Events\" to set picture of every desktop to \"$WALLPAPER\""
+
+# ============================================================
+# Other defaults — uncomment as desired
+# ============================================================
 
 # Show hidden files in Finder
 # defaults write com.apple.finder AppleShowAllFiles -bool true
@@ -24,6 +39,5 @@ set -euo pipefail
 # mkdir -p "$HOME/Pictures/Screenshots"
 # defaults write com.apple.screencapture location "$HOME/Pictures/Screenshots"
 
-# Apply
+# Apply changes that need a restart of UI processes
 # killall Finder Dock SystemUIServer 2>/dev/null || true
-echo "macos-defaults.sh: nothing enabled. Edit the script and uncomment lines."
