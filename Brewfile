@@ -70,9 +70,7 @@ cask "claude-code"
 
 # Secrets
 cask "1password-cli"
-# Note: the 1Password GUI app is required for `op` to unlock vaults,
-# which .aws/config depends on for MFA. Install manually or add:
-# cask "1password"
+cask "1password" # required for totp
 
 # Browser
 cask "google-chrome"
