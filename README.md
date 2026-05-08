@@ -1,0 +1,84 @@
+# macos-work-setup
+
+Reproducible setup for a fresh macOS development machine.
+
+## What's in here
+
+```
+.
+├── Brewfile              # CLI tools + GUI apps (run via `brew bundle`)
+├── bootstrap.sh          # Top-level installer — run this on a new mac
+├── home/                 # Mirrors $HOME; symlinked into place by link-dotfiles.sh
+│   ├── .zshrc
+│   ├── .zprofile
+│   ├── .aws/config
+│   └── .config/
+│       ├── ghostty/config
+│       └── helix/languages.toml
+└── scripts/
+    ├── link-dotfiles.sh      # Symlinks home/* into $HOME (with backup)
+    ├── install-languages.sh  # rustup, fnm LTS, latest pyenv python
+    └── macos-defaults.sh     # System prefs (disabled by default)
+```
+
+## Rebuilding a mac from scratch
+
+```bash
+# 1. Sign in to iCloud / App Store via System Settings.
+# 2. Install git the quickest way (triggers Xcode CLT install too):
+xcode-select --install
+
+# 3. Clone this repo:
+mkdir -p ~/repos && cd ~/repos
+git clone git@github.com:<you>/macos-work-setup.git
+cd macos-work-setup
+
+# 4. Run the bootstrap:
+./bootstrap.sh
+```
+
+The bootstrap is idempotent — re-run it any time to converge the machine
+back to this repo's state.
+
+## Post-install (manual steps)
+
+These can't be automated:
+
+- **1Password GUI** — sign in. The `op` CLI used in `.aws/config` for MFA
+  needs the GUI app authenticated to unlock vaults. (Install via
+  `cask "1password"` if you want it managed by brew.)
+- **Git identity** — set name/email:
+  ```bash
+  git config --global user.name "Your Name"
+  git config --global user.email "you@example.com"
+  ```
+- **Raycast** — open it, grant accessibility permissions, import settings
+  if you have them backed up.
+- **Ghostty** — accept terminal access prompts on first run.
+- **Sign in to**: Slack, Notion, Obsidian, Google Drive, Spotify, Chrome
+  (sync), VSCode (settings sync).
+- **SSH keys for GitHub** — generate and add to GitHub (or restore from
+  backup):
+  ```bash
+  ssh-keygen -t ed25519 -C "you@example.com"
+  pbcopy < ~/.ssh/id_ed25519.pub  # then paste into github.com/settings/keys
+  ```
+
+## Maintaining the repo
+
+When you install something new on the machine:
+
+```bash
+# Refresh Brewfile from current state and review the diff:
+brew bundle dump --file=Brewfile --force
+git diff Brewfile
+```
+
+When you change a tracked dotfile (e.g. `~/.zshrc`), edit it in this
+repo's `home/` tree — it's already symlinked, so changes flow both ways.
+
+To track a new dotfile, move it into `home/` and re-run:
+
+```bash
+./scripts/link-dotfiles.sh
+```
