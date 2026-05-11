@@ -1,4 +1,4 @@
-# macos-work-setup
+# macos-setup
 
 Reproducible setup for a fresh macOS development machine.
 
@@ -16,9 +16,10 @@ Reproducible setup for a fresh macOS development machine.
 │       ├── ghostty/config
 │       └── helix/languages.toml
 └── scripts/
-    ├── link-dotfiles.sh      # Symlinks home/* into $HOME (with backup)
-    ├── install-languages.sh  # rustup, fnm LTS, latest pyenv python
-    └── macos-defaults.sh     # System prefs (disabled by default)
+    ├── link-dotfiles.sh              # Symlinks home/* into $HOME (with backup)
+    ├── prune-orphaned-symlinks.sh    # Removes dangling links left behind by deleted dotfiles
+    ├── install-languages.sh          # rustup, fnm LTS, latest pyenv python
+    └── macos-defaults.sh             # System prefs (disabled by default)
 ```
 
 ## Rebuilding a mac from scratch
@@ -29,8 +30,8 @@ xcode-select --install
 
 # 2. Clone this repo:
 mkdir -p ~/repos && cd ~/repos
-git clone git@github.com:<you>/macos-work-setup.git
-cd macos-work-setup
+git clone git@github.com:<you>/macos-setup.git
+cd macos-setup
 
 # 3. Run the bootstrap:
 ./bootstrap.sh
@@ -81,3 +82,15 @@ To track a new dotfile, move it into `home/` and re-run:
 ```bash
 ./scripts/link-dotfiles.sh
 ```
+
+When you **remove** a tracked dotfile (delete it from `home/`), the symlink
+under `$HOME` is left behind as a dangling link. Sweep these up with:
+
+```bash
+./scripts/prune-orphaned-symlinks.sh
+```
+
+Note there are three guards before any removal: (1) target must be a
+symlink, (2) it must point into this repo's `home/` tree, and (3) the
+source file must not exist. Manually-created symlinks and links pointing
+outside the repo are not touched.
