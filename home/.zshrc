@@ -34,3 +34,10 @@ eval "$(pyenv init - zsh)"
 
 # Node
 eval "$(fnm env --use-on-cd --shell zsh)"
+
+# Add custom binaries to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Editor defaults
+export EDITOR=hx
+export VISUAL=hx

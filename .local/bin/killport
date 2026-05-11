@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ $# -ne 1 ]; then
+  echo "usage: killport <port>" >&2
+  exit 1
+fi
+
+pids=$(lsof -ti tcp:"$1" || true)
+if [ -z "$pids" ]; then
+  echo "nothing listening on port $1" >&2
+  exit 0
+fi
+
+echo "$pids" | xargs kill -9
+echo "killed: $pids"
