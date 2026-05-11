@@ -24,16 +24,15 @@ Reproducible setup for a fresh macOS development machine.
 ## Rebuilding a mac from scratch
 
 ```bash
-# 1. Sign in to iCloud / App Store via System Settings.
-# 2. Install git the quickest way (triggers Xcode CLT install too):
+# 1. Install git the quickest way (triggers Xcode CLT install too):
 xcode-select --install
 
-# 3. Clone this repo:
+# 2. Clone this repo:
 mkdir -p ~/repos && cd ~/repos
 git clone git@github.com:<you>/macos-work-setup.git
 cd macos-work-setup
 
-# 4. Run the bootstrap:
+# 3. Run the bootstrap:
 ./bootstrap.sh
 ```
 

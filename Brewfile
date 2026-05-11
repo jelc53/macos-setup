@@ -28,6 +28,7 @@ brew "dprint"             # formatter (markdown, etc.)
 
 # Version control
 brew "git"
+brew "gh"
 
 # Utilities
 brew "jq"
