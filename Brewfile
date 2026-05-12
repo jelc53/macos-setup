@@ -35,6 +35,8 @@ brew "jq"
 
 # Language toolchains
 brew "pyenv"              # python versions
+brew "poetry"             # python dependency management
+brew "uv"                 # python package/project manager
 brew "fnm"                # node versions
 # rust/cargo: installed by scripts/install-languages.sh via rustup
 
