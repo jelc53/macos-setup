@@ -1,4 +1,5 @@
 .DS_Store
 Brewfile.dump
 Brewfile.lock.json
+.aws/*
 *.backup-*
