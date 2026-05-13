@@ -7,3 +7,8 @@ name = "markdown"
 formatter = { command = "dprint", args = ["fmt", "--stdin", "md"]}
 auto-format = true
 rulers = [120]
+
+[[language]]
+name = "python"
+formatter = { command = "black", args = ["--quiet", "-"]}
+auto-format = true
