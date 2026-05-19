@@ -41,3 +41,6 @@ export PATH="$HOME/.local/bin:$PATH"
 # Editor defaults
 export EDITOR=hx
 export VISUAL=hx
+
+# UV virutal envs
+scratch() { uv run --project ~/scratch ipython "$@"; }
