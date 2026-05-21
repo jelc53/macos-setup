@@ -63,6 +63,8 @@ These can't be automated:
   ssh-keygen -t ed25519 -C "you@example.com"
   pbcopy < ~/.ssh/id_ed25519.pub  # then paste into github.com/settings/keys
   ```
+- **AWS config** — copy `~/.aws/config` from backup server to configure
+  aws-vault and awscli. You may need to update one-time pads in 1password
 
 ## Maintaining the repo
 
