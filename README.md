@@ -65,6 +65,17 @@ These can't be automated:
   ```
 - **AWS config** — copy `~/.aws/config` from backup server to configure
   aws-vault and awscli. You may need to update one-time pads in 1password
+- **Tailscale SSH** — enables remote access from phone via Terminus app
+  ```bash
+  sudo brew services start tailscale          # daemon, persists across reboots
+  sudo tailscale up --ssh --accept-dns --accept-routes
+  # browser opens → sign in with personal Google account (same tailnet as other devices)
+  tailscale status                            # verify peers visible
+  ```
+  Then in Termius on the phone: host = MagicDNS name (from
+  https://login.tailscale.com/admin/machines), port 22, username =
+  `whoami` on the Mac, no key/password. First connect triggers a push to
+  the Tailscale iPhone app to approve.
 
 ## Maintaining the repo
 

@@ -22,9 +22,9 @@ brew "lsd"
 
 # Editor & LSPs
 brew "helix"
-brew "marksman"           # markdown LSP (general)
-brew "markdown-oxide"     # markdown LSP (Obsidian vault use only)
-brew "dprint"             # formatter (markdown, etc.)
+brew "marksman"           # general purpose markdown language server
+brew "markdown-oxide"     # optimised for obsidian vaults
+brew "dprint"
 
 # Version control
 brew "git"
@@ -43,6 +43,9 @@ brew "fnm"                # node versions
 # AWS / cloud
 brew "awscli"
 brew "aws-vault"
+
+# Remote access
+brew "tailscale"
 
 # AI / local LLMs
 brew "ollama"
