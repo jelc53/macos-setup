@@ -29,6 +29,7 @@ brew "dprint"
 # Version control
 brew "git"
 brew "gh"
+brew "withgraphite/tap/graphite"
 
 # Utilities
 brew "jq"
