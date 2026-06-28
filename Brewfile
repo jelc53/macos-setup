@@ -49,7 +49,9 @@ brew "aws-vault"
 brew "tailscale"
 
 # AI / local LLMs
-brew "ollama"
+brew "llama.cpp"
+tap "anomalyco/tap"
+brew "anomalyco/tap/opencode"  # terminal ui
 
 # Media tooling (heavyweight; pulled in by yazi previewers etc.)
 brew "imagemagick-full", link: true

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# start and stop local llama.cpp servers together
+set -euo pipefail
+
+MODELS="$HOME/models"
+LOGS="$HOME/Library/Logs"
+
+# serve <name> <port> <extra llama-server args...>
+serve() {
+  local name="$1" port="$2"; shift 2
+  if curl -sf "http://localhost:$port/health" >/dev/null 2>&1; then
+    echo "  ok    $name (:$port already up)"
+    return
+  fi
+  echo "  start $name → :$port"
+  nohup llama-server --host 127.0.0.1 --port "$port" -ngl 99 "$@" \
+    >"$LOGS/llama-$name.log" 2>&1 &
+}
+
+up() { curl -sf "http://localhost:$1/health" >/dev/null 2>&1; }
+
+start() {
+  serve coder 8080 \
+    -m "$MODELS/qwen3-coder-30b/Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf" \
+    -c 65536 --jinja --temp 0.7 --top-p 0.8 --top-k 20 --repeat-penalty 1.05
+  serve embeddings 8082 \
+    -m "$MODELS/nomic-embed/nomic-embed-text-v1.5.f16.gguf" \
+    --embeddings --pooling mean -c 8192 -b 8192 -ub 8192
+  echo "web UI: http://localhost:8080"
+}
+
+stop() {
+  pkill -f llama-server && echo "stopped" || echo "nothing running"
+}
+
+status() {
+  up 8080 && echo "  up    coder :8080"      || echo "  down  coder :8080"
+  up 8082 && echo "  up    embeddings :8082" || echo "  down  embeddings :8082"
+}
+
+case "${1:-}" in
+  on|start) start ;;
+  off|stop) stop ;;
+  status)   status ;;
+  *) echo "usage: llm-local {on|off|status}"; exit 1 ;;
+esac

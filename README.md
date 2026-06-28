@@ -12,13 +12,16 @@ Reproducible setup for a fresh macOS development machine.
 │   ├── .zshrc
 │   ├── .zprofile
 │   ├── .aws/config
-│   └── .config/
-│       ├── ghostty/config
-│       └── helix/languages.toml
+│   ├── .config/
+│   │   ├── ghostty/config
+│   │   └── helix/languages.toml
+│   ├── .continue/config.yaml         # VSCode Continue → local coder + embeddings
+│   └── .local/bin/llm-local          # start/stop local model servers (offline use)
 └── scripts/
     ├── link-dotfiles.sh              # Symlinks home/* into $HOME (with backup)
     ├── prune-orphaned-symlinks.sh    # Removes dangling links left behind by deleted dotfiles
     ├── install-languages.sh          # rustup, fnm LTS, latest pyenv python
+    ├── download-local-llms.sh        # download local LLM weights
     └── macos-defaults.sh             # System prefs (disabled by default)
 ```
 
@@ -76,6 +79,16 @@ These can't be automated:
   https://login.tailscale.com/admin/machines), port 22, username =
   `whoami` on the Mac, no key/password. First connect triggers a push to
   the Tailscale iPhone app to approve.
+- **Local LLM stack (optional, offline use)** — local models for when there's
+  no internet (e.g. in transit). Not in `bootstrap.sh` (~18 GB of weights).
+  Run manually:
+  ```bash
+  ./scripts/download-local-llms.sh    # downloads coder + embeddings into ~/models
+  llm-local on                        # start servers (:8080 coder, :8082 embeddings)
+  llm-local status                    # check status; `llm-local off` to stop
+  ```
+  Talk to them via the llama-server web UI (http://localhost:8080) or VSCode
+  Continue (chat → `:8080`, `@codebase` embeddings → `:8082`).
 
 ## Maintaining the repo
 

@@ -1,0 +1,17 @@
+name: local-llama
+version: 1.0.0
+schema: v1
+models:
+  - name: Qwen3 Coder (local)
+    provider: openai
+    model: qwen3-coder
+    apiBase: http://localhost:8080/v1
+    apiKey: dummy
+    roles: [chat, edit, apply]
+
+  - name: Embeddings (local)
+    provider: openai
+    model: nomic-embed
+    apiBase: http://localhost:8082/v1
+    apiKey: dummy
+    roles: [embed]

@@ -3,11 +3,8 @@
 - Fail early and loudly. Use direct access (dict["key"]) instead of defensive .get() patterns.
 - No silent fallbacks. If a fallback is truly necessary, provide explicit rationale in a comment.
 - Don't guess. Never assume field names, constants, or enums—check the codebase or ask.
-- Prefer inline/hardcoded dataframes and dummy objects in tests over layered helper functions
-  that build them. If the data gets unwieldy, move it to `conftest.py`. Reach for a helper only when
-  duplication is severe and the helper is trivially correct.
-- If code is well named and structured, it should mostly be readable without code comments and lengthy docstrings.
-  Only add code comments for exceptional behaviour that needs explaining or future todos.
+- Prefer inline/hardcoded dataframes and dummy objects in tests over layered helper functions that build them. If the data gets unwieldy, move it to `conftest.py`. Reach for a helper only when duplication is severe and the helper is trivially correct.
+- If code is well named and structured, it should mostly be readable without code comments and lengthy docstrings. Only add code comments for exceptional behaviour that needs explaining or future todos.
 
 ## Communication
 
