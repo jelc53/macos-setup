@@ -3,5 +3,5 @@
     "enabled": true,
     "mode": "hold"
   },
-  "model": "claude-fable-5"
+  "voiceEnabled": true
 }
