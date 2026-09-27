@@ -16,7 +16,8 @@ Reproducible setup for a fresh macOS development machine.
 │   │   ├── ghostty/config
 │   │   └── helix/languages.toml
 │   ├── .continue/config.yaml         # VSCode Continue → local coder + embeddings
-│   └── .local/bin/llm-local          # start/stop local model servers (offline use)
+│   ├── .local/bin/llm-local          # start/stop local model servers (offline use)
+│   └── .local/bin/notes-backup       # mirror the Obsidian vault to Google Drive
 └── scripts/
     ├── link-dotfiles.sh              # Symlinks home/* into $HOME (with backup)
     ├── prune-orphaned-symlinks.sh    # Removes dangling links left behind by deleted dotfiles
@@ -47,9 +48,6 @@ back to this repo's state.
 
 These can't be automated:
 
-- **1Password GUI** — sign in. The `op` CLI used in `.aws/config` for MFA
-  needs the GUI app authenticated to unlock vaults. (Install via
-  `cask "1password"` if you want it managed by brew.)
 - **Git identity** — set name/email:
   ```bash
   git config --global user.name "Your Name"
@@ -66,8 +64,6 @@ These can't be automated:
   ssh-keygen -t ed25519 -C "you@example.com"
   pbcopy < ~/.ssh/id_ed25519.pub  # then paste into github.com/settings/keys
   ```
-- **AWS config** — copy `~/.aws/config` from backup server to configure
-  aws-vault and awscli. You may need to update one-time pads in 1password
 - **Tailscale SSH** — enables remote access from phone via Terminus app
   ```bash
   sudo brew services start tailscale          # daemon, persists across reboots
@@ -89,6 +85,18 @@ These can't be automated:
   ```
   Talk to them via the llama-server web UI (http://localhost:8080) or VSCode
   Continue (chat → `:8080`, `@codebase` embeddings → `:8082`).
+- **Obsidian vault backup** — the vault lives at `~/notes` and syncs to phone via
+  Obsidian Sync. Google Drive holds a plain-markdown mirror as a second copy. Run
+  the following command when you want the backup refreshed:
+  ```bash
+  notes-backup --dry-run    # list what would change
+  notes-backup              # mirror ~/notes -> My Drive/notes
+  ```
+- **1Password GUI** — sign in. The `op` CLI used in `.aws/config` for MFA
+  needs the GUI app authenticated to unlock vaults. (Install via
+  `cask "1password"` if you want it managed by brew.)
+- **AWS config** — copy `~/.aws/config` from backup server to configure
+  aws-vault and awscli. You may need to update one-time pads in 1password
 
 ## Maintaining the repo
 

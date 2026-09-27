@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Mirror the Obsidian vault to Google Drive as a plain-markdown backup.
+# The destination is deliberately NOT a vault: .obsidian is excluded so it can
+# never be opened in Obsidian and synced against the live remote.
+set -euo pipefail
+
+VAULT="$HOME/notes"
+DRIVE="$HOME/Library/CloudStorage/GoogleDrive-julian.e.cooper2@gmail.com/My Drive"
+DEST="$DRIVE/notes"
+MIN_NOTES=500
+
+DRY=""
+if [ "${1:-}" = "--dry-run" ]; then DRY="--dry-run --verbose"; fi
+
+# Surface any failure — a weekly backup that dies quietly is worse than none.
+notify() { osascript -e "display notification \"$1\" with title \"notes-backup failed\"" >/dev/null 2>&1 || true; }
+fail() { echo "  FAIL  $1"; notify "$1"; exit 1; }
+
+# Drive mounts on demand. Without this check rsync would create a plain local
+# directory at DEST, fill the boot disk, and never sync a byte of it.
+[ -d "$DRIVE" ] || fail "Google Drive not mounted at $DRIVE"
+
+# Existence is not access: under launchd the Drive folder is visible but reads are
+# denied by TCC unless the calling binary has Full Disk Access. Check for real, so
+# this fails here with a clear message instead of halfway through an rsync.
+ls "$DEST" >/dev/null 2>&1 || fail "cannot read $DEST — grant Full Disk Access (see README)"
+
+[ -d "$VAULT" ] || fail "no vault at $VAULT"
+
+# --delete makes a truncated or half-mounted source destructive. Refuse to run
+# unless the vault looks like itself.
+count="$(find "$VAULT" -name '*.md' -not -path '*/.obsidian/*' | wc -l | tr -d ' ')"
+[ "$count" -ge "$MIN_NOTES" ] || fail "only $count notes in $VAULT (expected >= $MIN_NOTES) — refusing to mirror"
+
+# --delete-excluded matters: without it, --delete *protects* excluded paths on the
+# destination, so a stale .obsidian/ in the backup would survive forever and keep
+# the backup openable as a vault.
+echo "  mirror $count notes  $VAULT -> $DEST"
+rsync -a --delete --delete-excluded ${DRY:+$DRY} \
+  --exclude '.obsidian/' \
+  --exclude '.DS_Store' \
+  --exclude '.trash/' \
+  "$VAULT/" "$DEST/"
+
+echo "  done   $(date '+%Y-%m-%d %H:%M')"
