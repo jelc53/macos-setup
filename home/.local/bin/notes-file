@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""File captures from the vault's _inbox into their proper notes.
+
+Routing is decided by an LLM against the vault's AGENTS.md. Writing is decided
+here: the model never touches a file. It returns a destination and a block of
+text, and this script enforces the one rule AGENTS.md promises -- no existing
+line is ever modified, reordered or deleted.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.request
+from datetime import date, datetime
+from pathlib import Path
+
+VAULT = Path(os.environ.get("NOTES_VAULT", Path.home() / "notes"))
+BASE_URL = os.environ.get("NOTES_FILE_BASE_URL", "http://localhost:8080/v1")
+MODEL = os.environ.get("NOTES_FILE_MODEL", "local")
+API_KEY = os.environ.get("NOTES_FILE_API_KEY", "")
+
+INBOX = VAULT / "_inbox"
+LOG = INBOX / "_log.md"
+
+CREATABLE = ("relationships/", "projects/", "learning/", "admin/")
+FORBIDDEN = ("confidential/", "_templates/", "_attachments/", "_inbox/", ".obsidian/")
+
+SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "filing",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["insert", "create", "defer"]},
+                "path": {"type": "string"},
+                "section": {"type": "string"},
+                "content": {"type": "string"},
+            },
+            "required": ["action", "path", "section", "content"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
+class Refused(Exception):
+    """The proposal violates a rule. The capture stays in the inbox."""
+
+
+# --- reading the vault -------------------------------------------------------
+
+def listing(folder):
+    d = VAULT / folder
+    return "\n".join(sorted(p.name for p in d.glob("*.md"))) if d.is_dir() else ""
+
+
+def headings(path):
+    """Section labels only. Passing note *content* to the model makes it
+    regurgitate existing lines back as if they were the capture."""
+    if not path.is_file():
+        return ""
+    out = []
+    for line in path.read_text().splitlines():
+        if line.startswith("#"):
+            out.append(line)
+        elif is_bare_label(line):
+            out.append(line)
+    return "\n".join(out)
+
+
+def is_bare_label(line):
+    """A group label in a daily note: 'Client requests', not '## Todos'."""
+    s = line.strip()
+    return bool(s) and not s.startswith(("-", "*", "#", "`", "|", ">", "<")) \
+        and line == line.lstrip() and len(s) < 40 and not s.endswith((".", ":"))
+
+
+def context(today):
+    learning = "\n".join(sorted(p.name for p in (VAULT / "learning").iterdir() if p.is_dir()))
+    daily = VAULT / "_todos" / f"{today}.md"
+    parts = [
+        (VAULT / "AGENTS.md").read_text(),
+        f"## Today is {today}.",
+        "## Existing people notes\n\n" + listing("relationships"),
+        "## Existing project notes\n\n" + listing("projects"),
+        "## Learning topic folders\n\n" + learning,
+    ]
+    if daily.is_file():
+        parts.append(f"## Section labels in today's note ({daily.name})\n\n" + headings(daily))
+    else:
+        parts.append(f"## _todos/{today}.md DOES NOT EXIST. Do not route tasks there.")
+    parts.append("## Section headings in admin/admin.md\n\n" + headings(VAULT / "admin" / "admin.md"))
+    return "\n\n".join(parts)
+
+
+# --- the model ---------------------------------------------------------------
+
+def route(capture_text, ctx):
+    body = json.dumps({
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": ctx},
+            {"role": "user", "content": capture_text},
+        ],
+        "temperature": 0.1,
+        "response_format": SCHEMA,
+    }).encode()
+    headers = {"Content-Type": "application/json"}
+    if API_KEY:
+        headers["Authorization"] = f"Bearer {API_KEY}"
+    req = urllib.request.Request(f"{BASE_URL}/chat/completions", body, headers)
+    with urllib.request.urlopen(req, timeout=180) as r:
+        payload = json.load(r)
+    return json.loads(payload["choices"][0]["message"]["content"])
+
+
+# --- the one hard rule -------------------------------------------------------
+
+def assert_insert_only(original, new):
+    """`original` must survive as a subsequence of `new`: additions only, with
+    no line modified, reordered or dropped."""
+    it = iter(new)
+    for line in original:
+        for candidate in it:
+            if candidate == line:
+                break
+        else:
+            raise Refused(f"write would modify or drop an existing line: {line!r}")
+
+
+def find_section(lines, section):
+    """Return (start, end) of the section's body, or None."""
+    want = section.strip().lstrip("#").strip().lower()
+    for i, line in enumerate(lines):
+        label = line.strip().lstrip("#").strip().lower()
+        if label != want:
+            continue
+        depth = len(line) - len(line.lstrip("#")) if line.startswith("#") else 0
+        for j in range(i + 1, len(lines)):
+            nxt = lines[j]
+            if nxt.startswith("#"):
+                if (len(nxt) - len(nxt.lstrip("#"))) <= depth or depth == 0:
+                    return i + 1, j
+            elif depth == 0 and is_bare_label(nxt):
+                return i + 1, j
+        return i + 1, len(lines)
+    return None
+
+
+def splice(original, section, content):
+    lines = list(original)
+    block = content.rstrip("\n").split("\n")
+    if not section.strip():
+        while lines and not lines[-1].strip():
+            lines.pop()
+        return lines + [""] + block
+    found = find_section(lines, section)
+    if found is None:
+        raise Refused(f"section {section!r} not found in file")
+    _, end = found
+    at = end
+    while at > 0 and not lines[at - 1].strip():
+        at -= 1
+    return lines[:at] + block + lines[at:]
+
+
+# --- writing -----------------------------------------------------------------
+
+def check_path(rel, action):
+    if rel.startswith("/") or ".." in Path(rel).parts:
+        raise Refused(f"path escapes the vault: {rel}")
+    if not rel.endswith(".md"):
+        raise Refused(f"not a markdown path: {rel}")
+    if any(rel.startswith(f) for f in FORBIDDEN):
+        raise Refused(f"writes are forbidden here: {rel}")
+    target = VAULT / rel
+    if action == "create":
+        if not any(rel.startswith(c) for c in CREATABLE):
+            raise Refused(f"cannot create notes in this folder: {rel}")
+        if target.exists():
+            raise Refused(f"create would overwrite an existing note: {rel}")
+    else:
+        if rel.startswith("_todos/") and not target.is_file():
+            raise Refused("agents never create daily notes (Templater does)")
+        if not target.is_file():
+            raise Refused(f"insert target does not exist: {rel}")
+    return target
+
+
+def apply(proposal, dry_run):
+    action, rel = proposal["action"], proposal["path"]
+    target = check_path(rel, action)
+    if action == "create":
+        new_lines = proposal["content"].rstrip("\n").split("\n")
+        original = []
+    else:
+        original = target.read_text().splitlines()
+        new_lines = splice(original, proposal["section"], proposal["content"])
+        assert_insert_only(original, new_lines)
+    if dry_run:
+        return target
+    tmp = target.with_suffix(".md.tmp")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text("\n".join(new_lines) + "\n")
+    if action == "insert":
+        assert_insert_only(original, tmp.read_text().splitlines())
+    tmp.replace(target)
+    return target
+
+
+def log(capture_name, proposal, note):
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    sec = f" §{proposal['section']}" if proposal["section"].strip() else ""
+    line = f"- {stamp} — `{capture_name}` → {proposal['action']} `{proposal['path']}`{sec}"
+    if note:
+        line += f" — {note}"
+    if not LOG.is_file():
+        LOG.write_text("# Filing log\n\nWritten by `notes-file`. Newest at the bottom.\n\n")
+    with LOG.open("a") as f:
+        f.write(line + "\n")
+
+
+# --- main --------------------------------------------------------------------
+
+def main():
+    ap = argparse.ArgumentParser(description="File _inbox captures into the vault.")
+    ap.add_argument("--dry-run", action="store_true", help="show proposals, write nothing")
+    ap.add_argument("--review", action="store_true", help="confirm each write interactively")
+    args = ap.parse_args()
+
+    if not (VAULT / "AGENTS.md").is_file():
+        sys.exit(f"  FAIL  no AGENTS.md in {VAULT}")
+
+    captures = sorted(p for p in INBOX.glob("*.md") if not p.name.startswith("_"))
+    if not captures:
+        print("  inbox empty")
+        return
+
+    ctx = context(date.today().isoformat())
+    print(f"  {len(captures)} capture(s), model={MODEL} via {BASE_URL}\n")
+
+    for cap in captures:
+        text = cap.read_text().strip()
+        if not text:
+            print(f"  skip   {cap.name} (empty)")
+            continue
+        proposal = route(text, ctx)
+        action = proposal["action"]
+        sec = f" §{proposal['section']}" if proposal["section"].strip() else ""
+
+        if action == "defer":
+            print(f"  defer  {cap.name} — stays in the inbox")
+            continue
+
+        print(f"  {action:6} {cap.name}")
+        print(f"         -> {proposal['path']}{sec}")
+        for line in proposal["content"].rstrip("\n").split("\n"):
+            print(f"         |  {line}")
+
+        try:
+            apply(proposal, dry_run=True)
+        except Refused as e:
+            print(f"         REFUSED: {e}\n")
+            log(cap.name, proposal, f"refused: {e}")
+            continue
+
+        if args.dry_run:
+            print()
+            continue
+        if args.review and input("         write? [y/N] ").strip().lower() != "y":
+            print("         skipped\n")
+            continue
+
+        apply(proposal, dry_run=False)
+        log(cap.name, proposal, "")
+        cap.unlink()
+        print("         written, capture removed\n")
+
+
+if __name__ == "__main__":
+    main()

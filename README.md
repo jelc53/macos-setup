@@ -17,7 +17,8 @@ Reproducible setup for a fresh macOS development machine.
 │   │   └── helix/languages.toml
 │   ├── .continue/config.yaml         # VSCode Continue → local coder + embeddings
 │   ├── .local/bin/llm-local          # start/stop local model servers (offline use)
-│   └── .local/bin/notes-backup       # mirror the Obsidian vault to Google Drive
+│   ├── .local/bin/notes-backup       # mirror the Obsidian vault to Google Drive
+│   └── .local/bin/notes-file         # file _inbox captures into the vault via an LLM
 └── scripts/
     ├── link-dotfiles.sh              # Symlinks home/* into $HOME (with backup)
     ├── prune-orphaned-symlinks.sh    # Removes dangling links left behind by deleted dotfiles
@@ -92,6 +93,17 @@ These can't be automated:
   notes-backup --dry-run    # list what would change
   notes-backup              # mirror ~/notes -> My Drive/notes
   ```
+- **Vault capture filing** — voice captures land one-per-file in `~/notes/_inbox/`.
+  `notes-file` routes each into its proper note using the vault's own `AGENTS.md`:
+  ```bash
+  notes-file --dry-run    # show proposals, write nothing
+  notes-file --review     # confirm each write interactively
+  notes-file              # file everything, defer the rest
+  ```
+  Uses the local model by default (`llm-local on` first); override with
+  `NOTES_FILE_BASE_URL` / `NOTES_FILE_MODEL` / `NOTES_FILE_API_KEY`. The model only
+  proposes; the script enforces insert-only (no existing line modified, reordered or
+  deleted) and refuses anything else. Actions logged to `_inbox/_log.md`.
 - **1Password GUI** — sign in. The `op` CLI used in `.aws/config` for MFA
   needs the GUI app authenticated to unlock vaults. (Install via
   `cask "1password"` if you want it managed by brew.)
