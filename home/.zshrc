@@ -35,6 +35,9 @@ eval "$(pyenv init - zsh)"
 # Node
 eval "$(fnm env --use-on-cd --shell zsh)"
 
+# Mise
+eval "$(mise activate zsh)"
+
 # Add custom binaries to PATH
 export PATH="$HOME/.local/bin:$PATH"
 

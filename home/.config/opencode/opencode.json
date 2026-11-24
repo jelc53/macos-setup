@@ -4,7 +4,7 @@
   "provider": {
     "local": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "llama-server (local)",
+      "name": "llama-server",
       "options": {
         "baseURL": "http://127.0.0.1:8080/v1",
         "apiKey": "dummy"
